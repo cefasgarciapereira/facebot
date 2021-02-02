@@ -1,2 +1,2 @@
-username = 'your-facebook-username-here'
-password = 'your-facebook-password-here'
+username = 'cefasfacebook@gmail.com'
+password = '.?PFJ3uLvk'
