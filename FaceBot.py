@@ -13,6 +13,7 @@ class FaceBot:
         chrome_options = webdriver.ChromeOptions()
         prefs = {"profile.default_content_setting_values.notifications": 2}
         chrome_options.add_experimental_option("prefs", prefs)
+        chrome_options.headless = headless
         self.driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), chrome_options=chrome_options)
         sleep(1)
         self.login()
