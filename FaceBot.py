@@ -14,6 +14,8 @@ class FaceBot:
         prefs = {"profile.default_content_setting_values.notifications": 2}
         chrome_options.add_experimental_option("prefs", prefs)
         self.driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), chrome_options=chrome_options)
+        sleep(1)
+        self.login()
 
     def log(self, msg):
         if(self.loggin):
@@ -194,6 +196,6 @@ class FaceBot:
     def set_post_id(self, id):
         self.id = id
     
-    def logout(self):
+    def close(self):
         self.log('Quiting facebook')
         self.driver.quit()
