@@ -1,6 +1,7 @@
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from time import sleep
+import utils
 
 class FaceBot:
     
@@ -30,14 +31,18 @@ class FaceBot:
             self.driver.find_element_by_id("pass").send_keys(self.password)
             self.driver.find_element_by_name("login").click()
             self.log('Successfully logged into Facebook')
+            sleep(2)
         except:
             self.log('Failed to log into Facebook')
     
+    def navigate_to_post(self, id):
+        self.id = id
+        self.log('['+self.id+'] - Navigating to post')
+        self.driver.get(utils.post_url(id))
+        sleep(3)
+    
     def post_content(self):
         self.log('['+self.id+'] - Extracting post content')
-        sleep(1)
-        self.driver.get('https://mbasic.facebook.com/story.php?story_fbid='+self.id+'&id=415518858611168')
-        sleep(2)
         content = self.driver.find_elements_by_tag_name('p')
         post_content = []
 
@@ -60,18 +65,6 @@ class FaceBot:
     
     def post_reactions(self):
         self.log('['+self.id+'] - Extracting post reactions')
-        sleep(1)
-        
-        try:
-            self.driver.find_element_by_xpath("/html/body/div/div/div[2]/div/div[1]/div[2]/div/div[3]/a").click()
-        except:
-            try:
-                self.driver.find_element_by_xpath("/html/body/div/div/div[2]/div/div[1]/div/div/div[3]/div[2]/div/div/div[2]/a").click()
-            except:
-                self.log('[FAILED] - Extracting post reactions')
-                pass
-        sleep(2)
-        
         all_reactions = 0
         sad = 0
         angry = 0
@@ -79,47 +72,78 @@ class FaceBot:
         likes = 0
         haha = 0
         love = 0
+        care = 0
+        sleep(1)
+
+        try:
+            self.driver.find_element_by_xpath("/html/body/div[1]/div/div[4]/div/div[1]/div/div/div/div[2]/div/div/div[2]/a").click()
+        except:
+            try:
+                self.driver.find_element_by_xpath("/html/body/div/div/div[2]/div/div[1]/div[2]/div/div[3]/a").click()
+            except:
+                try:
+                    self.driver.find_element_by_xpath("/html/body/div/div/div[2]/div/div[1]/div/div/div[3]/div[2]/div/div/div[2]/a").click()
+                except:
+                    self.log('[FAILED] - Extracting post reactions')
+                    pass
+        sleep(2)
+        
+        tens = {'K': 10e2, 'M': 10e6, 'B': 10e9}
+        f = lambda x: int(float(x[:-1])*tens[x[-1]])
         
         try:
-            all_reactions = self.driver.find_element_by_xpath("//a[@class='z ba']").text
-            if(all_reactions.contains('K')):
-                all_reactions = ''.join([n for n in all_reactions if n.isdigit()])
+            all_reactions = self.driver.find_element_by_xpath(utils.all_reactions_xpath[0]).text
+        except:
+            try:
+                all_reactions = self.driver.find_element_by_xpath(utils.all_reactions_xpath[1]).text
+            except:
+                pass
+
+        try:
+            all_reactions = all_reactions.replace('All','')
+            all_reactions = f(all_reactions)
+            all_reactions = ''.join([n for n in all_reactions if n.isdigit()])
         except:
             pass
 
         try:
-            sad = self.driver.find_element_by_xpath("//img[@alt='Sad']/following-sibling::span[1]").text
-            sad = ''.join([n for n in sad if n.isdigit()])
+            sad = self.driver.find_element_by_xpath(utils.sad_xpath).text
         except:
             pass
 
         try:
-            angry = self.driver.find_element_by_xpath("//img[@alt='Angry']/following-sibling::span[1]").text
+            angry = self.driver.find_element_by_xpath(utils.angry_xpath).text
             angry = ''.join([n for n in angry if n.isdigit()])
         except:
             pass
 
         try:
-            wow = self.driver.find_element_by_xpath("//img[@alt='Wow']/following-sibling::span[1]").text
+            wow = self.driver.find_element_by_xpath(utils.wow_xpath).text
             wow = ''.join([n for n in wow if n.isdigit()])
         except:
             pass
 
         try:
-            likes = self.driver.find_element_by_xpath("//img[@alt='Like']/following-sibling::span[1]").text
+            likes = self.driver.find_element_by_xpath(utils.likes_xpath).text
             likes = ''.join([n for n in likes if n.isdigit()])
         except:
             pass
         
         try:
-            haha = self.driver.find_element_by_xpath("//img[@alt='Haha']/following-sibling::span[1]").text
+            haha = self.driver.find_element_by_xpath(utils.haha_xpath).text
             haha = ''.join([n for n in haha if n.isdigit()])
         except:
             pass
         
         try:
-            love = self.driver.find_element_by_xpath("//img[@alt='Love']/following-sibling::span[1]").text
+            love = self.driver.find_element_by_xpath(utils.love_xapth).text
             love = ''.join([n for n in love if n.isdigit()])
+        except:
+            pass
+
+        try:
+            care = self.driver.find_element_by_xpath(utils.care_xpath).text
+            care = ''.join([n for n in love if n.isdigit()])
         except:
             pass
 
@@ -130,25 +154,32 @@ class FaceBot:
             "wow": wow,
             "likes": likes,
             "haha": haha,
-            "love": love
+            "love": love,
+            "care": care
         }
         return reactions
     
     def post_shares(self):
         self.log('['+self.id+'] - Extracting post shares')
+        shares = 0
         sleep(1)
-        self.driver.get('https://m.facebook.com/browse/shares?id='+self.id)
-        sleep(2)
-    
-    def post_author(self, navigate=False):
-        self.log('['+self.id+'] - Extracting post author')
-        author = ''
-
-        if(navigate):
-            sleep(1)
-            self.driver.get('https://mbasic.facebook.com/story.php?story_fbid='+self.id+'&id=415518858611168')        
         
-        sleep(2)
+        try:
+            shares = self.driver.find_element_by_xpath(utils.shares_xpath).text
+            shares = shares.replace('K', '000')
+            shares = ''.join([n for n in shares if n.isdigit()])
+        except:
+            self.log('[FAILED] - Extracting post shares')
+            pass
+        sleep(1)
+        
+        return shares
+    
+    def post_author(self):
+        self.log('['+self.id+'] - Extracting post author')
+        author = ''  
+        sleep(1)
+        
         try:
             author = self.driver.find_element_by_xpath("//h3[contains(@class,'bh bi')]//a[1]").text
         except:
@@ -162,15 +193,11 @@ class FaceBot:
 
         return author
     
-    def post_date(self, navigate=False):
+    def post_date(self):
         self.log('['+self.id+'] - Extracting post date')
         date = ''
-
-        if(navigate):
-            sleep(1)
-            self.driver.get('https://mbasic.facebook.com/story.php?story_fbid='+id+'&id=415518858611168')
-        
         sleep(2)
+
         try:
             date = self.driver.find_element_by_tag_name("abbr").text
         except:
@@ -180,9 +207,10 @@ class FaceBot:
     
     def post_info(self):
         self.log('\n['+self.id+'] - Extracting post info')
-        content = self.post_content()
         author = self.post_author()
         date = self.post_date()
+        content = self.post_content()
+        shares = self.post_shares()
         reactions = self.post_reactions()
 
         info = {
@@ -190,6 +218,7 @@ class FaceBot:
             "author": author,
             "date": date,
             "content": content,
+            "shares": shares,
             "reactions": reactions
         }
         return info
