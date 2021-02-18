@@ -21,7 +21,7 @@ class FaceBot:
 
     def log(self, msg):
         if(self.loggin):
-            print(str(msg))
+            print('['+str(self.id)+'] - '+str(msg))
 
     def login(self):
         try:
@@ -37,12 +37,22 @@ class FaceBot:
     
     def navigate_to_post(self, id):
         self.id = id
-        self.log('['+self.id+'] - Navigating to post')
+        self.log('Navigating to post')
         self.driver.get(utils.post_url(id))
-        sleep(3)
+        is_valid = True
+        
+        try:
+            is_valid = self.driver.find_element_by_xpath("//i[contains(@class,'img _7nyv')]")
+            is_valid = False
+        except:
+            pass
+        sleep(2)
+        
+        return is_valid
     
     def post_content(self):
-        self.log('['+self.id+'] - Extracting post content')
+        sleep(1)
+        self.log('Extracting post content')
         content = self.driver.find_elements_by_tag_name('p')
         post_content = []
 
@@ -61,17 +71,17 @@ class FaceBot:
                 post_content = ''
 
 
-        return post_content
+        return str(post_content)
     
     def post_reactions(self):
-        self.log('['+self.id+'] - Extracting post reactions')
+        self.log('Extracting post reactions')
         all_reactions = 0
+        likes = 0
+        love = 0
+        wow = 0
+        haha = 0
         sad = 0
         angry = 0
-        wow = 0
-        likes = 0
-        haha = 0
-        love = 0
         care = 0
         sleep(1)
 
@@ -90,6 +100,9 @@ class FaceBot:
         
         tens = {'K': 10e2, 'M': 10e6, 'B': 10e9}
         f = lambda x: int(float(x[:-1])*tens[x[-1]])
+        gtens = {'K': 10e3, 'M': 10e6, 'B': 10e9}
+        g = lambda x: int(float(x[:-1])*gtens[x[-1]])
+
         
         try:
             all_reactions = self.driver.find_element_by_xpath(utils.all_reactions_xpath[0]).text
@@ -105,62 +118,71 @@ class FaceBot:
             all_reactions = ''.join([n for n in all_reactions if n.isdigit()])
         except:
             pass
-
-        try:
-            sad = self.driver.find_element_by_xpath(utils.sad_xpath).text
-        except:
-            pass
-
-        try:
-            angry = self.driver.find_element_by_xpath(utils.angry_xpath).text
-            angry = ''.join([n for n in angry if n.isdigit()])
-        except:
-            pass
-
-        try:
-            wow = self.driver.find_element_by_xpath(utils.wow_xpath).text
-            wow = ''.join([n for n in wow if n.isdigit()])
-        except:
-            pass
-
+        
         try:
             likes = self.driver.find_element_by_xpath(utils.likes_xpath).text
+            likes = g(likes)
             likes = ''.join([n for n in likes if n.isdigit()])
         except:
             pass
-        
+
         try:
-            haha = self.driver.find_element_by_xpath(utils.haha_xpath).text
-            haha = ''.join([n for n in haha if n.isdigit()])
-        except:
-            pass
-        
-        try:
-            love = self.driver.find_element_by_xpath(utils.love_xapth).text
+            love = self.driver.find_element_by_xpath(utils.love_xpath).text
+            love = g(love)
             love = ''.join([n for n in love if n.isdigit()])
         except:
             pass
 
         try:
-            care = self.driver.find_element_by_xpath(utils.care_xpath).text
-            care = ''.join([n for n in love if n.isdigit()])
+            wow = self.driver.find_element_by_xpath(utils.wow_xpath).text
+            wow = g(wow)
+            wow = ''.join([n for n in wow if n.isdigit()])
         except:
             pass
 
-        reactions = {
+        try:
+            haha = self.driver.find_element_by_xpath(utils.haha_xpath).text
+            haha = g(haha)
+            haha = ''.join([n for n in haha if n.isdigit()])
+        except:
+            pass
+
+        try:
+            sad = self.driver.find_element_by_xpath(utils.sad_xpath).text
+            sad = g(sad)
+            sad = ''.join([n for n in sad if n.isdigit()])
+        except:
+            pass
+
+        try:
+            angry = self.driver.find_element_by_xpath(utils.angry_xpath).text
+            angry = g(angry)
+            angry = ''.join([n for n in angry if n.isdigit()])
+        except:
+            pass
+
+        try:
+            care = self.driver.find_element_by_xpath(utils.care_xpath).text
+            care = g(care)
+            care = ''.join([n for n in care if n.isdigit()])
+        except:
+            pass
+        
+        response = {
             "all": all_reactions,
+            "likes": likes,
+            "love": love,
+            "wow": wow,
+            "haha": haha,
             "sad": sad,
             "angry": angry,
-            "wow": wow,
-            "likes": likes,
-            "haha": haha,
-            "love": love,
             "care": care
         }
-        return reactions
+        
+        return response
     
     def post_shares(self):
-        self.log('['+self.id+'] - Extracting post shares')
+        self.log('Extracting post shares')
         shares = 0
         sleep(1)
         
@@ -173,10 +195,75 @@ class FaceBot:
             pass
         sleep(1)
         
-        return shares
+        return str(int(shares))
     
+    def post_comments_deprecated(self):
+        self.log('Extracting post comments')
+        comments = []
+        sleep(1)
+        see_more = False
+        total_time = 0
+
+        def last_element_arr(arr):
+            arr_size = len(arr)
+            return arr[arr_size - 1]
+        
+        try:
+            self.driver.find_element_by_class_name('_108_').get_property('href')
+            see_more = True
+        except:
+            pass
+
+        #load comments while the see_more is True and stop after 1 minute loading
+        while (see_more and (total_time < 60)):
+            last_post = last_element_arr(self.driver.find_elements_by_class_name('_2b06'))
+            self.driver.find_element_by_class_name('_108_').click()
+            sleep(2)
+            total_time = total_time + 2
+
+            #if the last post didn't change stop trying
+            if(last_post == last_element_arr(self.driver.find_elements_by_class_name('_2b06'))):
+                see_more = False
+            
+        try:
+            comments = self.driver.find_elements_by_class_name('_2b06')
+        except:
+            self.log('Error during extract comments')
+            pass
+
+        if(see_more):
+            self.log('Stoped because it was taking too long')
+            return str(len(comments))+' +'
+
+        return str(len(comments))
+    
+    def post_comments(self):
+        self.log('Extracting post comments')
+        self.driver.get('https://www.facebook.com/'+self.id)
+        sleep_time = 1
+        trying = True
+        tries = 0
+        comments = 0
+        
+        while trying and sleep_time <= 15 and comments == 0:
+            tries = tries + 1
+            sleep(sleep_time)
+            self.log(str(tries)+'º try')
+            try:
+                comments = self.driver.find_element_by_xpath(utils.comments_xpath).text
+                comments = comments.replace('Comments','')
+                comments = comments.replace('K','000')
+                comments = ''.join([n for n in comments if n.isdigit()])
+                trying = False
+            except Exception as err:
+                sleep_time = sleep_time + 1
+                pass
+        
+        return str(comments)
+
+
     def post_author(self):
-        self.log('['+self.id+'] - Extracting post author')
+        self.log('Extracting post author')
         author = ''  
         sleep(1)
         
@@ -191,10 +278,10 @@ class FaceBot:
             except:
                 pass
 
-        return author
+        return str(author)
     
     def post_date(self):
-        self.log('['+self.id+'] - Extracting post date')
+        self.log('Extracting post date')
         date = ''
         sleep(2)
 
@@ -203,24 +290,42 @@ class FaceBot:
         except:
             pass
 
-        return date
+        return str(date)
     
-    def post_info(self):
-        self.log('\n['+self.id+'] - Extracting post info')
+    def is_fact_checked(self):
+        self.log('Checking if the post is fact checked')
+        response = False
+
+        try:
+            self.driver.find_element_by_xpath(utils.false_information_xpath).text
+            response = True
+        except:
+            pass
+        
+        return response
+    
+    def post_info(self, is_valid=True):
+        self.log('Extracting post info')
+        fact_checked = self.is_fact_checked()
         author = self.post_author()
         date = self.post_date()
         content = self.post_content()
         shares = self.post_shares()
         reactions = self.post_reactions()
+        comments = self.post_comments()
 
         info = {
             "id": self.id,
             "author": author,
             "date": date,
             "content": content,
+            "comments": comments,
             "shares": shares,
-            "reactions": reactions
+            "reactions": reactions,
+            "is_valid": is_valid,
+            "fact_checked": fact_checked
         }
+        self.log('\n')
         return info
     
     def set_post_id(self, id):
