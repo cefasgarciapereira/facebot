@@ -71,7 +71,7 @@ class FaceBot:
                 post_content = ''
 
 
-        return str(post_content)
+        return str(post_content).replace(',',' ')
     
     def post_reactions(self):
         self.log('Extracting post reactions')
@@ -94,8 +94,11 @@ class FaceBot:
                 try:
                     self.driver.find_element_by_xpath("/html/body/div/div/div[2]/div/div[1]/div/div/div[3]/div[2]/div/div/div[2]/a").click()
                 except:
-                    self.log('[FAILED] - Extracting post reactions')
-                    pass
+                    try:
+                        self.driver.find_element_by_xpath("/html/body/div[1]/div/div[4]/div/div[1]/div/div/div/div[3]/div/div/div[2]/a").click()
+                    except:
+                        self.log('[FAILED] - Extracting post reactions')
+                        pass
         sleep(2)
         
         tens = {'K': 10e2, 'M': 10e6, 'B': 10e9}
@@ -239,25 +242,39 @@ class FaceBot:
     
     def post_comments(self):
         self.log('Extracting post comments')
-        self.driver.get('https://www.facebook.com/'+self.id)
-        sleep_time = 1
+        self.driver.get('https://www.facebook.com/'+str(self.id))
+        sleep_time = 3
         trying = True
         tries = 0
         comments = 0
         
-        while trying and sleep_time <= 15 and comments == 0:
+        while trying and sleep_time <= 5 and comments == 0:
             tries = tries + 1
             sleep(sleep_time)
             self.log(str(tries)+'º try')
             try:
-                comments = self.driver.find_element_by_xpath(utils.comments_xpath).text
+                comments = self.driver.find_element_by_xpath(utils.comments_xpath[0]).text
                 comments = comments.replace('Comments','')
                 comments = comments.replace('K','000')
                 comments = ''.join([n for n in comments if n.isdigit()])
                 trying = False
-            except Exception as err:
-                sleep_time = sleep_time + 1
-                pass
+            except:
+                try:
+                    comments = self.driver.find_element_by_xpath(utils.comments_xpath[1]).text
+                    comments = comments.replace('Comments','')
+                    comments = comments.replace('K','000')
+                    comments = ''.join([n for n in comments if n.isdigit()])
+                    trying = False
+                except:
+                    try:
+                        comments = self.driver.find_element_by_xpath(utils.comments_xpath[2]).text
+                        comments = comments.replace('Comments','')
+                        comments = comments.replace('K','000')
+                        comments = ''.join([n for n in comments if n.isdigit()])
+                        trying = False
+                    except Exception as err:
+                        sleep_time = sleep_time + 1
+                        pass
         
         return str(comments)
 
@@ -316,9 +333,9 @@ class FaceBot:
 
         info = {
             "id": self.id,
-            "author": author,
-            "date": date,
-            "content": content,
+            "author": self.rc(author),
+            "date": self.rc(date),
+            "content": self.rc(content),
             "comments": comments,
             "shares": shares,
             "reactions": reactions,
@@ -334,3 +351,8 @@ class FaceBot:
     def close(self):
         self.log('Quiting facebook')
         self.driver.quit()
+    
+    def rc(self, value):
+        #remove commas
+        new_value = str(value).replace(',',' ')
+        return new_value
