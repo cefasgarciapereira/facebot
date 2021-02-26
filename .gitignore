@@ -2,3 +2,5 @@ main.py
 secrets.py
 test.py
 *.pyc
+*.csv
+*.json
